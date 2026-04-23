@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minecraft Present Simple Miner</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            background: #000;
+            cursor: url('Img/pickaxe.png') 32 32, crosshair;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #game-stage {
+            width: 100vw; height: 100vh;
+            background: url('Img/bg1.jpg') no-repeat center center;
+            background-size: cover;
+            position: relative;
+            transition: background-image 0.8s ease-in-out;
+        }
+
+        .ui {
+            position: absolute; top: 12px; left: 12px;
+            color: #fff; text-shadow: 2px 2px #000;
+            background: rgba(0,0,0,0.8); padding: 12px 16px;
+            border: 3px solid #f39c12; border-radius: 4px;
+            z-index: 1000; min-width: 180px;
+            font-size: clamp(13px, 2.5vw, 18px);
+            line-height: 1.6;
+        }
+
+        #next-lvl-btn {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            padding: clamp(14px, 3vw, 30px) clamp(28px, 6vw, 70px);
+            font-size: clamp(22px, 5vw, 50px);
+            font-family: 'Courier New', Courier, monospace;
+            background: #f39c12; color: white;
+            border: 5px solid #a6611a; cursor: pointer;
+            display: none; z-index: 2000;
+            text-shadow: 2px 2px #000;
+        }
+
+        .chest {
+            width: clamp(120px, 18vw, 220px);
+            height: clamp(120px, 18vw, 220px);
+            position: absolute;
+            background: url('Img/chest.png') no-repeat center center;
+            background-size: contain;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center;
+            z-index: 500;
+            animation: floatSpawn 5s ease-in-out forwards;
+        }
+
+        .chest-text {
+            pointer-events: none;
+            margin-top: -10px;
+            padding: 4px 8px;
+            font-weight: 900;
+            font-size: clamp(13px, 2.8vw, 26px);
+            color: #fff;
+            text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
+            line-height: 1.2;
+        }
+
+        @keyframes floatSpawn {
+            0%   { transform: scale(0); opacity: 0; }
+            10%  { transform: scale(1); opacity: 1; }
+            90%  { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .tnt-explosion {
+            background: url('Img/tnt.png') no-repeat center center !important;
+            background-size: contain !important;
+            animation: tntShake 0.1s infinite !important;
+            z-index: 600;
+        }
+
+        @keyframes tntShake {
+            0%  { transform: scale(1.3) translate(5px, 5px); }
+            50% { transform: scale(1.3) translate(-5px, -5px); }
+        }
+
+        .shake-screen { animation: screenShake 0.4s; }
+        @keyframes screenShake {
+            25%  { transform: translate(10px, 10px); }
+            50%  { transform: translate(-10px, -10px); }
+            100% { transform: translate(0,0); }
+        }
+
+        .win-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('Img/win.jpg') no-repeat center center;
+            background-size: cover;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 3000;
+        }
+
+        .win-screen h1 {
+            color: #ffff55;
+            font-size: clamp(28px, 6vw, 60px);
+            text-shadow: 4px 4px #000;
+            text-align: center;
+            padding: 0 16px;
+        }
+
+        .win-screen button {
+            padding: clamp(10px,2vw,20px) clamp(20px,4vw,40px);
+            font-size: clamp(16px,3vw,24px);
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            background: #f39c12; border: 4px solid #a6611a; color: #fff;
+            text-shadow: 2px 2px #000; margin-top: 20px;
+        }
+
+        /* Экран перехода уровня */
+        #level-banner {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(0,0,0,0.85);
+            border: 5px solid #f39c12; border-radius: 6px;
+            color: #f1c40f; text-align: center; padding: 30px 50px;
+            font-size: clamp(24px, 5vw, 52px);
+            text-shadow: 3px 3px #000;
+            z-index: 2500;
+            transition: transform 0.3s;
+            pointer-events: none;
+        }
+        #level-banner.show { transform: translate(-50%, -50%) scale(1); }
+        #level-banner .sub {
+            font-size: clamp(14px, 2.5vw, 26px);
+            color: #fff; margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<audio id="bgMusic" loop>
+    <source src="1.mp3" type="audio/mpeg">
+</audio>
+<audio id="openSound">
+    <source src="1.mp3" type="audio/mpeg">
+</audio>
+
+<div id="game-stage">
+    <div class="ui" id="game-ui">
+        <div style="color:#f1c40f;">STAGE: <span id="level">1</span></div>
+        <div>CHESTS: <span id="score">0</span> / <span id="target">5</span></div>
+        <div style="color:#e74c3c;">LIVES: <span id="lives">3</span></div>
+    </div>
+    <button id="next-lvl-btn" onclick="nextLevel()">NEXT LEVEL ▶</button>
+    <div id="level-banner">
+        <div id="banner-title">STAGE 1</div>
+        <div class="sub" id="banner-sub">Click correct sentences!</div>
+    </div>
+</div>
+
+<div id="final-win" class="win-screen">
+    <h1>YOU DEFEATED THE DRAGON! 🐉</h1>
+    <button onclick="location.reload()">PLAY AGAIN</button>
+</div>
+
+<script>
+    const stage    = document.getElementById('game-stage');
+    const scoreEl  = document.getElementById('score');
+    const livesEl  = document.getElementById('lives');
+    const levelEl  = document.getElementById('level');
+    const targetEl = document.getElementById('target');
+    const nextBtn  = document.getElementById('next-lvl-btn');
+    const winScreen= document.getElementById('final-win');
+    const bgMusic  = document.getElementById('bgMusic');
+    const openSound= document.getElementById('openSound');
+    const banner   = document.getElementById('level-banner');
+    const bannerTitle = document.getElementById('banner-title');
+    const bannerSub   = document.getElementById('banner-sub');
+
+    let score = 0, lives = 3, currentLevel = 1;
+    let gameActive = true, musicStarted = false;
+
+    // 6 уровней, targets
+    const levelTargets = [5, 8, 12, 16, 20, 25];
+    const totalLevels  = 6;
+
+    function startMusic() {
+        if (!musicStarted) {
+            bgMusic.play(); bgMusic.volume = 0.25; musicStarted = true;
+        }
+    }
+
+    function playOpenEffect() {
+        openSound.currentTime = 0.5;
+        openSound.volume = 0.15;
+        openSound.play();
+        setTimeout(() => openSound.pause(), 300);
+    }
+
+    // ─── ФРАЗЫ ────────────────────────────────────────────────────────────────
+    // Формат: { text, correct }
+    // Правило Present Simple:
+    //   I/YOU/WE/THEY → base form
+    //   HE/SHE/IT     → -s / -es / -ies
+    const phrases = [
+        // HE / SHE / IT
+        { text: "HE WAKES UP",         correct: true  },
+        { text: "HE WAKE UP",          correct: false },
+        { text: "SHE LISTENS TO MUSIC",correct: true  },
+        { text: "SHE LISTEN TO MUSIC", correct: false },
+        { text: "HE PLAYS",            correct: true  },
+        { text: "HE PLAY",             correct: false },
+        { text: "SHE WATCHES TV",      correct: true  },
+        { text: "SHE WATCH TV",        correct: false },
+        { text: "IT JUMPS",            correct: true  },
+        { text: "IT JUMP",             correct: false },
+        { text: "HE SWIMS",            correct: true  },
+        { text: "HE SWIM",             correct: false },
+        { text: "SHE CATCHES THE BUS", correct: true  },
+        { text: "SHE CATCH THE BUS",   correct: false },
+        { text: "HE DOES HIS HOMEWORK",correct: true  },
+        { text: "HE DO HIS HOMEWORK",  correct: false },
+        { text: "SHE GOES TO SCHOOL",  correct: true  },
+        { text: "SHE GO TO SCHOOL",    correct: false },
+        { text: "HE WALKS TO SCHOOL",  correct: true  },
+        { text: "HE WALK TO SCHOOL",   correct: false },
+        { text: "SHE GETS UP EARLY",   correct: true  },
+        { text: "SHE GET UP EARLY",    correct: false },
+        { text: "HE TAKES A SHOWER",   correct: true  },
+        { text: "HE TAKE A SHOWER",    correct: false },
+        { text: "SHE READS A BOOK",    correct: true  },
+        { text: "SHE READ A BOOK",     correct: false },
+        { text: "HE RIDES HIS BIKE",   correct: true  },
+        { text: "HE RIDE HIS BIKE",    correct: false },
+        { text: "SHE COOKS DINNER",    correct: true  },
+        { text: "SHE COOK DINNER",     correct: false },
+        { text: "IT HAS A TAIL",       correct: true  },
+        { text: "IT HAVE A TAIL",      correct: false },
+        { text: "SHE FLIES A KITE",    correct: true  },
+        { text: "SHE FLY A KITE",      correct: false },
+        { text: "HE RUNS FAST",        correct: true  },
+        { text: "HE RUN FAST",         correct: false },
+        { text: "SHE CLIMBS A TREE",   correct: true  },
+        { text: "SHE CLIMB A TREE",    correct: false },
+        { text: "HE EATS BREAKFAST",   correct: true  },
+        { text: "HE EAT BREAKFAST",    correct: false },
+        { text: "SHE MAKES HER BED",   correct: true  },
+        { text: "SHE MAKE HER BED",    correct: false },
+        { text: "HE THROWS THE BALL",  correct: true  },
+        { text: "HE THROW THE BALL",   correct: false },
+        { text: "SHE WEARS A COAT",    correct: true  },
+        { text: "SHE WEAR A COAT",     correct: false },
+        // I / YOU / WE / THEY
+        { text: "I LIKE PIZZA",        correct: true  },
+        { text: "I LIKES PIZZA",       correct: false },
+        { text: "THEY GO TO BED",      correct: true  },
+        { text: "THEY GOES TO BED",    correct: false },
+        { text: "WE COOK TOGETHER",    correct: true  },
+        { text: "WE COOKS TOGETHER",   correct: false },
+        { text: "YOU EAT AN APPLE",    correct: true  },
+        { text: "YOU EATS AN APPLE",   correct: false },
+        { text: "THEY SWIM EVERY DAY", correct: true  },
+        { text: "THEY SWIMS EVERY DAY",correct: false },
+        { text: "WE PLAY OUTSIDE",     correct: true  },
+        { text: "WE PLAYS OUTSIDE",    correct: false },
+        { text: "I GET UP AT 7",       correct: true  },
+        { text: "I GETS UP AT 7",      correct: false },
+        { text: "THEY READ BOOKS",     correct: true  },
+        { text: "THEY READS BOOKS",    correct: false },
+        { text: "WE RUN IN THE PARK",  correct: true  },
+        { text: "WE RUNS IN THE PARK", correct: false },
+        { text: "YOU MAKE A CAKE",     correct: true  },
+        { text: "YOU MAKES A CAKE",    correct: false },
+        { text: "THEY WALK HOME",      correct: true  },
+        { text: "THEY WALKS HOME",     correct: false },
+        { text: "I HAVE BREAKFAST",    correct: true  },
+        { text: "I HAS BREAKFAST",     correct: false },
+        { text: "WE WEAR UNIFORMS",    correct: true  },
+        { text: "WE WEARS UNIFORMS",   correct: false },
+        { text: "THEY CLIMB MOUNTAINS",correct: true  },
+        { text: "THEY CLIMBS MOUNTAINS",correct:false },
+    ];
+
+    // ─── ПОЗИЦИОНИРОВАНИЕ ─────────────────────────────────────────────────────
+    const CHEST_W = () => Math.max(120, Math.min(220, window.innerWidth * 0.18));
+
+    function isOverlapping(x, y) {
+        const cw = CHEST_W();
+        for (let c of document.querySelectorAll('.chest')) {
+            const r = c.getBoundingClientRect();
+            if (Math.hypot(r.left - x, r.top - y) < cw + 30) return true;
+        }
+        return false;
+    }
+
+    // ─── СОЗДАНИЕ СУНДУКА ─────────────────────────────────────────────────────
+    function createChest() {
+        if (!gameActive || lives <= 0) return;
+        const cw = CHEST_W();
+
+        let x, y, attempts = 0;
+        do {
+            x = Math.random() * (window.innerWidth  - cw - 30) + 10;
+            y = Math.random() * (window.innerHeight * 0.55) + window.innerHeight * 0.15;
+            attempts++;
+        } while (isOverlapping(x, y) && attempts < 20);
+
+        const chest = document.createElement('div');
+        const data  = phrases[Math.floor(Math.random() * phrases.length)];
+
+        chest.className = 'chest';
+        chest.style.left = x + 'px';
+        chest.style.top  = y + 'px';
+        chest.innerHTML  = `<div class="chest-text">${data.text}</div>`;
+
+        const handleClick = () => {
+            startMusic();
+            if (!gameActive) return;
+            if (data.correct) {
+                playOpenEffect();
+                score++;
+                scoreEl.innerText = score;
+                chest.remove();
+                checkLevelObjective();
+            } else {
+                explode(chest);
+            }
+        };
+
+        // Поддержка и мыши, и касания
+        chest.addEventListener('click',      handleClick);
+        chest.addEventListener('touchstart', e => { e.preventDefault(); handleClick(); }, { passive: false });
+
+        stage.appendChild(chest);
+        setTimeout(() => { if (chest.parentNode) chest.remove(); }, 5000);
+    }
+
+    // ─── ВЗРЫВ ────────────────────────────────────────────────────────────────
+    function explode(el) {
+        lives--;
+        livesEl.innerText = lives;
+        el.innerHTML = '';
+        el.classList.add('tnt-explosion');
+        stage.classList.add('shake-screen');
+        setTimeout(() => {
+            stage.classList.remove('shake-screen');
+            el.remove();
+            if (lives <= 0) { alert('GAME OVER! Try again!'); location.reload(); }
+        }, 600);
+    }
+
+    // ─── ПРОВЕРКА ЦЕЛИ УРОВНЯ ─────────────────────────────────────────────────
+    function checkLevelObjective() {
+        if (score >= levelTargets[currentLevel - 1]) {
+            gameActive = false;
+            document.querySelectorAll('.chest').forEach(c => c.remove());
+            if (currentLevel >= totalLevels) {
+                winScreen.style.display = 'flex';
+                document.getElementById('game-ui').style.display = 'none';
+            } else {
+                nextBtn.style.display = 'block';
+            }
+        }
+    }
+
+    // ─── СЛЕДУЮЩИЙ УРОВЕНЬ ────────────────────────────────────────────────────
+    function nextLevel() {
+        nextBtn.style.display = 'none';
+        currentLevel++;
+        if (currentLevel > totalLevels) {
+            winScreen.style.display = 'flex';
+            document.getElementById('game-ui').style.display = 'none';
+            return;
+        }
+
+        // Показываем баннер нового уровня
+        bannerTitle.textContent = `STAGE ${currentLevel}`;
+        bannerSub.textContent   = `Collect ${levelTargets[currentLevel-1]} chests!`;
+        banner.classList.add('show');
+
+        setTimeout(() => {
+            banner.classList.remove('show');
+            // Меняем фон
+            stage.style.backgroundImage = `url('Img/bg${currentLevel}.jpg')`;
+            score = 0;
+            scoreEl.innerText = score;
+            levelEl.innerText = currentLevel;
+            targetEl.innerText = levelTargets[currentLevel - 1];
+            gameActive = true;
+        }, 1800);
+    }
+
+    // ─── СТАРТ ────────────────────────────────────────────────────────────────
+    // Показываем баннер первого уровня при загрузке
+    window.addEventListener('load', () => {
+        targetEl.innerText = levelTargets[0];
+        bannerTitle.textContent = 'STAGE 1';
+        bannerSub.textContent   = `Collect ${levelTargets[0]} chests!`;
+        banner.classList.add('show');
+        setTimeout(() => banner.classList.remove('show'), 1800);
+    });
+
+    setInterval(createChest, 1800);
+</script>
+</body>
+</html>

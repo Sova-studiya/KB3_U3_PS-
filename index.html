@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Minecraft Present Simple Miner</title>
     <style>
         * { box-sizing: border-box; }
@@ -10,20 +10,26 @@
             margin: 0; overflow: hidden;
             font-family: 'Courier New', Courier, monospace;
             background: #000;
-            cursor: url('img/pickaxe.png') 32 32, crosshair;
+            cursor: crosshair;
             user-select: none;
             -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
             touch-action: none;
         }
+        html, body { height: 100%; }
+        @media (hover: hover) and (pointer: fine) {
+            body { cursor: url('img/pickaxe.png') 32 32, crosshair; }
+        }
         #game-stage {
-            width: 100vw; height: 100vh;
+            width: 100%; height: 100vh; height: 100dvh;
             background: url('img/bg1.jpg') no-repeat center center;
             background-size: cover;
             position: relative;
             transition: background-image 0.8s ease-in-out;
         }
         .ui {
-            position: absolute; top: 12px; left: 12px;
+            position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); left: calc(12px + env(safe-area-inset-left, 0px));
             color: #fff; text-shadow: 2px 2px #000;
             background: rgba(0,0,0,0.8); padding: 12px 16px;
             border: 3px solid #f39c12; border-radius: 4px;
@@ -43,22 +49,22 @@
             text-shadow: 2px 2px #000;
         }
         .chest {
-            width: clamp(120px, 18vw, 220px);
-            height: clamp(120px, 18vw, 220px);
+            width: var(--cw, 160px);
+            height: var(--cw, 160px);
             position: absolute;
             background: url('img/chest.png') no-repeat center center;
             background-size: contain;
             display: flex; align-items: center; justify-content: center;
             text-align: center;
             z-index: 500;
-            animation: floatSpawn 5s ease-in-out forwards;
+            animation: floatSpawn var(--life, 7.5s) ease-in-out forwards;
         }
         .chest-text {
             pointer-events: none;
             margin-top: -10px;
             padding: 4px 8px;
             font-weight: 900;
-            font-size: clamp(12px, 2.5vw, 23px);
+            font-size: clamp(12px, calc(var(--cw, 160px) * 0.125), 26px);
             color: #fff;
             text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
             line-height: 1.2;
@@ -116,6 +122,7 @@
             background: rgba(0,0,0,0.88);
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
+            justify-content: safe center;
             overflow-y: auto; padding: 16px;
         }
         #mode-menu h1 {
@@ -139,6 +146,29 @@
         }
         #level-banner.show { transform: translate(-50%, -50%) scale(1); }
         #level-banner .sub { font-size: clamp(14px, 2.5vw, 26px); color: #fff; margin-top: 8px; }
+
+        #popup {
+            position: absolute; left: 50%; top: 18%;
+            transform: translate(-50%, 0); opacity: 0;
+            font-size: clamp(20px, 5vw, 44px); font-weight: 900;
+            color: #ff5577; text-shadow: 3px 3px #000;
+            z-index: 2800; pointer-events: none; white-space: nowrap;
+        }
+        #popup.show { animation: popupAnim 1.6s ease-out; }
+        @keyframes popupAnim {
+            0%   { opacity: 0; transform: translate(-50%, 20px) scale(0.6); }
+            20%  { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
+            80%  { opacity: 1; transform: translate(-50%, -10px) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -30px) scale(1); }
+        }
+
+        /* Мобильные и маленькие экраны */
+        @media (max-width: 700px), (max-height: 500px) {
+            .ui { padding: 6px 10px; min-width: 0; border-width: 2px; line-height: 1.35; font-size: clamp(11px, 3vw, 14px); }
+            #level-banner { padding: 16px 24px; width: 90%; }
+            .mode-btn { margin-top: 8px; padding: 10px 16px; }
+            #mode-menu p { margin-bottom: 2px; }
+        }
     </style>
 </head>
 <body>
@@ -155,13 +185,15 @@
         <div style="color:#3498db;">MODE: <span id="mode-label">-</span></div>
         <div style="color:#f1c40f;">STAGE: <span id="level">1</span></div>
         <div>CHESTS: <span id="score">0</span> / <span id="target">5</span></div>
-        <div style="color:#e74c3c;">LIVES: <span id="lives">3</span></div>
+        <div style="color:#e74c3c;">LIVES: <span id="lives">❤❤❤</span></div>
+        <div style="color:#2ecc71;">STREAK: <span id="streak">0</span>/5</div>
     </div>
     <button id="next-lvl-btn" onclick="nextLevel()">NEXT LEVEL ▶</button>
     <div id="level-banner">
         <div id="banner-title">STAGE 1</div>
         <div class="sub" id="banner-sub">Click correct sentences!</div>
     </div>
+    <div id="popup"></div>
 </div>
 
 <!-- Меню выбора режима -->
@@ -172,6 +204,11 @@
     <button class="mode-btn" onclick="startGame('neg')">－ NEGATIVE (He doesn't play)</button>
     <button class="mode-btn" onclick="startGame('q')">？ QUESTIONS (Does he play?)</button>
     <button class="mode-btn" onclick="startGame('mix')">★ ALL TYPES (MIX)</button>
+</div>
+
+<div id="game-over" class="win-screen" style="background: rgba(0,0,0,0.9);">
+    <h1 style="color:#ff5555;">GAME OVER 💥</h1>
+    <button onclick="location.reload()">TRY AGAIN</button>
 </div>
 
 <div id="final-win" class="win-screen">
@@ -194,8 +231,15 @@
     const bannerSub   = document.getElementById('banner-sub');
     const modeMenu = document.getElementById('mode-menu');
     const modeLabel= document.getElementById('mode-label');
+    const streakEl = document.getElementById('streak');
+    const popupEl  = document.getElementById('popup');
+    const gameOverEl = document.getElementById('game-over');
 
-    let score = 0, lives = 3, currentLevel = 1;
+    let score = 0, lives = 3, currentLevel = 1, streak = 0;
+    const MAX_LIVES = 5;        // максимум жизней
+    const STREAK_FOR_LIFE = 5;  // правильных подряд для +1 жизни
+    const CHEST_LIFE = 7500;    // сколько мс сундук висит на экране
+    const SPAWN_MS = 2000;      // как часто появляются сундуки
     let gameActive = false, musicStarted = false;
     let gameMode = 'mix'; // aff | neg | q | mix
 
@@ -210,16 +254,41 @@
         mix: 'Statements, negatives, questions!'
     };
 
+    // ─── ЖИЗНИ ────────────────────────────────────────────────────────────────
+    function renderLives() { livesEl.textContent = '❤'.repeat(Math.max(lives, 0)); }
+
+    function showPopup(text) {
+        popupEl.textContent = text;
+        popupEl.classList.remove('show');
+        void popupEl.offsetWidth;
+        popupEl.classList.add('show');
+    }
+
+    function gainLife(reason) {
+        if (lives < MAX_LIVES) {
+            lives++; renderLives();
+            showPopup(reason + ' +1 ❤');
+        } else {
+            showPopup(reason + ' (MAX ❤)');
+        }
+    }
+
+    function addStreak() {
+        streak++;
+        if (streak >= STREAK_FOR_LIFE) { streak = 0; gainLife(STREAK_FOR_LIFE + ' IN A ROW!'); }
+        streakEl.textContent = streak;
+    }
+
     function startMusic() {
         if (!musicStarted) {
-            bgMusic.play(); bgMusic.volume = 0.25; musicStarted = true;
+            bgMusic.volume = 0.25; bgMusic.play().catch(() => {}); musicStarted = true;
         }
     }
 
     function playOpenEffect() {
         openSound.currentTime = 0.5;
         openSound.volume = 0.15;
-        openSound.play();
+        openSound.play().catch(() => {});
         setTimeout(() => openSound.pause(), 300);
     }
 
@@ -298,7 +367,15 @@
     }
 
     // ─── ПОЗИЦИОНИРОВАНИЕ ─────────────────────────────────────────────────────
-    const CHEST_W = () => Math.max(120, Math.min(220, window.innerWidth * 0.18));
+    const CHEST_W = () => {
+        const w = window.innerWidth, h = window.innerHeight;
+        const size = w < h ? Math.max(110, Math.min(200, w * 0.3))     // портрет (телефон)
+                           : Math.max(120, Math.min(220, w * 0.18));   // ландшафт / десктоп
+        return Math.min(size, h * 0.38);
+    };
+    function applySize() { document.documentElement.style.setProperty('--cw', CHEST_W() + 'px'); }
+    applySize();
+    window.addEventListener('resize', applySize);
 
     function isOverlapping(x, y) {
         const cw = CHEST_W();
@@ -313,11 +390,14 @@
     function createChest() {
         if (!gameActive || lives <= 0) return;
         const cw = CHEST_W();
+        const uiR  = document.getElementById('game-ui').getBoundingClientRect();
+        const minY = uiR.bottom + 8;
+        const maxY = Math.min(window.innerHeight - cw - 10, window.innerHeight * 0.8);
 
         let x, y, attempts = 0;
         do {
-            x = Math.random() * (window.innerWidth  - cw - 30) + 10;
-            y = Math.random() * (window.innerHeight * 0.55) + window.innerHeight * 0.15;
+            x = Math.random() * Math.max(10, window.innerWidth - cw - 20) + 10;
+            y = minY + Math.random() * Math.max(10, maxY - minY);
             attempts++;
         } while (isOverlapping(x, y) && attempts < 20);
 
@@ -329,38 +409,46 @@
         chest.style.top  = y + 'px';
         chest.innerHTML  = `<div class="chest-text">${data.text}</div>`;
 
-        const handleClick = () => {
+        let used = false;
+        const handleClick = e => {
+            if (e) e.preventDefault();
+            if (used) return;
             startMusic();
             if (!gameActive) return;
+            used = true;
             if (data.correct) {
                 playOpenEffect();
                 score++;
                 scoreEl.innerText = score;
                 chest.remove();
+                addStreak();
                 checkLevelObjective();
             } else {
+                streak = 0; streakEl.textContent = 0;
                 explode(chest);
             }
         };
 
-        chest.addEventListener('click',      handleClick);
-        chest.addEventListener('touchstart', e => { e.preventDefault(); handleClick(); }, { passive: false });
+        // pointerdown работает одинаково для мыши, пальца и стилуса
+        chest.addEventListener('pointerdown', handleClick);
+        chest.style.setProperty('--life', CHEST_LIFE + 'ms');
 
         stage.appendChild(chest);
-        setTimeout(() => { if (chest.parentNode) chest.remove(); }, 5000);
+        setTimeout(() => { if (chest.parentNode) chest.remove(); }, CHEST_LIFE);
     }
 
     // ─── ВЗРЫВ ────────────────────────────────────────────────────────────────
     function explode(el) {
         lives--;
-        livesEl.innerText = lives;
+        renderLives();
+        if (lives <= 0) gameActive = false;
         el.innerHTML = '';
         el.classList.add('tnt-explosion');
         stage.classList.add('shake-screen');
         setTimeout(() => {
             stage.classList.remove('shake-screen');
             el.remove();
-            if (lives <= 0) { alert('GAME OVER! Try again!'); location.reload(); }
+            if (lives <= 0) { gameOverEl.style.display = 'flex'; }
         }, 600);
     }
 
@@ -374,6 +462,7 @@
                 document.getElementById('game-ui').style.display = 'none';
             } else {
                 nextBtn.style.display = 'block';
+                gainLife('LEVEL CLEAR!');
             }
         }
     }
@@ -419,7 +508,8 @@
         }, 1800);
     }
 
-    setInterval(createChest, 1800);
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    setInterval(createChest, SPAWN_MS);
 </script>
 </body>
 </html>

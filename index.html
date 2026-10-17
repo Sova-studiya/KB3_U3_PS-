@@ -15,7 +15,6 @@
             -webkit-user-select: none;
             touch-action: none;
         }
-
         #game-stage {
             width: 100vw; height: 100vh;
             background: url('img/bg1.jpg') no-repeat center center;
@@ -23,7 +22,6 @@
             position: relative;
             transition: background-image 0.8s ease-in-out;
         }
-
         .ui {
             position: absolute; top: 12px; left: 12px;
             color: #fff; text-shadow: 2px 2px #000;
@@ -33,7 +31,6 @@
             font-size: clamp(13px, 2.5vw, 18px);
             line-height: 1.6;
         }
-
         #next-lvl-btn {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -45,7 +42,6 @@
             display: none; z-index: 2000;
             text-shadow: 2px 2px #000;
         }
-
         .chest {
             width: clamp(120px, 18vw, 220px);
             height: clamp(120px, 18vw, 220px);
@@ -57,44 +53,38 @@
             z-index: 500;
             animation: floatSpawn 5s ease-in-out forwards;
         }
-
         .chest-text {
             pointer-events: none;
             margin-top: -10px;
             padding: 4px 8px;
             font-weight: 900;
-            font-size: clamp(13px, 2.8vw, 26px);
+            font-size: clamp(12px, 2.5vw, 23px);
             color: #fff;
             text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
             line-height: 1.2;
         }
-
         @keyframes floatSpawn {
             0%   { transform: scale(0); opacity: 0; }
             10%  { transform: scale(1); opacity: 1; }
             90%  { transform: scale(1); opacity: 1; }
             100% { transform: scale(0); opacity: 0; }
         }
-
         .tnt-explosion {
             background: url('img/tnt.png') no-repeat center center !important;
             background-size: contain !important;
             animation: tntShake 0.1s infinite !important;
             z-index: 600;
         }
-
         @keyframes tntShake {
             0%  { transform: scale(1.3) translate(5px, 5px); }
             50% { transform: scale(1.3) translate(-5px, -5px); }
         }
-
         .shake-screen { animation: screenShake 0.4s; }
         @keyframes screenShake {
             25%  { transform: translate(10px, 10px); }
             50%  { transform: translate(-10px, -10px); }
             100% { transform: translate(0,0); }
         }
-
         .win-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: url('img/win.jpg') no-repeat center center;
@@ -102,7 +92,6 @@
             display: none; flex-direction: column; align-items: center; justify-content: center;
             z-index: 3000;
         }
-
         .win-screen h1 {
             color: #ffff55;
             font-size: clamp(28px, 6vw, 60px);
@@ -110,8 +99,7 @@
             text-align: center;
             padding: 0 16px;
         }
-
-        .win-screen button {
+        .win-screen button, .mode-btn {
             padding: clamp(10px,2vw,20px) clamp(20px,4vw,40px);
             font-size: clamp(16px,3vw,24px);
             cursor: pointer;
@@ -119,8 +107,24 @@
             background: #f39c12; border: 4px solid #a6611a; color: #fff;
             text-shadow: 2px 2px #000; margin-top: 20px;
         }
+        .mode-btn { width: min(80vw, 420px); margin-top: 12px; }
+        .mode-btn:hover { background: #e67e22; }
 
-        /* Экран перехода уровня */
+        /* Меню выбора режима */
+        #mode-menu {
+            position: absolute; inset: 0; z-index: 4000;
+            background: rgba(0,0,0,0.88);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            overflow-y: auto; padding: 16px;
+        }
+        #mode-menu h1 {
+            color: #f1c40f; text-shadow: 3px 3px #000;
+            font-size: clamp(22px, 5vw, 44px);
+            text-align: center; margin: 0 0 4px;
+        }
+        #mode-menu p { color: #fff; margin: 0 0 8px; text-align: center; font-size: clamp(13px, 2.5vw, 20px); }
+
         #level-banner {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0);
@@ -134,10 +138,7 @@
             pointer-events: none;
         }
         #level-banner.show { transform: translate(-50%, -50%) scale(1); }
-        #level-banner .sub {
-            font-size: clamp(14px, 2.5vw, 26px);
-            color: #fff; margin-top: 8px;
-        }
+        #level-banner .sub { font-size: clamp(14px, 2.5vw, 26px); color: #fff; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -151,6 +152,7 @@
 
 <div id="game-stage">
     <div class="ui" id="game-ui">
+        <div style="color:#3498db;">MODE: <span id="mode-label">-</span></div>
         <div style="color:#f1c40f;">STAGE: <span id="level">1</span></div>
         <div>CHESTS: <span id="score">0</span> / <span id="target">5</span></div>
         <div style="color:#e74c3c;">LIVES: <span id="lives">3</span></div>
@@ -160,6 +162,16 @@
         <div id="banner-title">STAGE 1</div>
         <div class="sub" id="banner-sub">Click correct sentences!</div>
     </div>
+</div>
+
+<!-- Меню выбора режима -->
+<div id="mode-menu">
+    <h1>⛏ PRESENT SIMPLE MINER</h1>
+    <p>Выбери, что тренировать:</p>
+    <button class="mode-btn" onclick="startGame('aff')">＋ AFFIRMATIVE (He plays)</button>
+    <button class="mode-btn" onclick="startGame('neg')">－ NEGATIVE (He doesn't play)</button>
+    <button class="mode-btn" onclick="startGame('q')">？ QUESTIONS (Does he play?)</button>
+    <button class="mode-btn" onclick="startGame('mix')">★ ALL TYPES (MIX)</button>
 </div>
 
 <div id="final-win" class="win-screen">
@@ -180,13 +192,23 @@
     const banner   = document.getElementById('level-banner');
     const bannerTitle = document.getElementById('banner-title');
     const bannerSub   = document.getElementById('banner-sub');
+    const modeMenu = document.getElementById('mode-menu');
+    const modeLabel= document.getElementById('mode-label');
 
     let score = 0, lives = 3, currentLevel = 1;
-    let gameActive = true, musicStarted = false;
+    let gameActive = false, musicStarted = false;
+    let gameMode = 'mix'; // aff | neg | q | mix
 
-    // 6 уровней, targets
     const levelTargets = [5, 8, 12, 16, 20, 25];
     const totalLevels  = 6;
+
+    const MODE_NAMES = { aff: 'AFFIRMATIVE', neg: 'NEGATIVE', q: 'QUESTIONS', mix: 'ALL TYPES' };
+    const MODE_HINTS = {
+        aff: 'Click correct sentences!',
+        neg: 'Find correct NEGATIVE sentences!',
+        q:   'Find correct QUESTIONS!',
+        mix: 'Statements, negatives, questions!'
+    };
 
     function startMusic() {
         if (!musicStarted) {
@@ -201,89 +223,79 @@
         setTimeout(() => openSound.pause(), 300);
     }
 
-    // ─── ФРАЗЫ ────────────────────────────────────────────────────────────────
-    // Формат: { text, correct }
-    // Правило Present Simple:
-    //   I/YOU/WE/THEY → base form
-    //   HE/SHE/IT     → -s / -es / -ies
-    const phrases = [
-        // HE / SHE / IT
-        { text: "HE WAKES UP",         correct: true  },
-        { text: "HE WAKE UP",          correct: false },
-        { text: "SHE LISTENS TO MUSIC",correct: true  },
-        { text: "SHE LISTEN TO MUSIC", correct: false },
-        { text: "HE PLAYS",            correct: true  },
-        { text: "HE PLAY",             correct: false },
-        { text: "SHE WATCHES TV",      correct: true  },
-        { text: "SHE WATCH TV",        correct: false },
-        { text: "IT JUMPS",            correct: true  },
-        { text: "IT JUMP",             correct: false },
-        { text: "HE SWIMS",            correct: true  },
-        { text: "HE SWIM",             correct: false },
-        { text: "SHE CATCHES THE BUS", correct: true  },
-        { text: "SHE CATCH THE BUS",   correct: false },
-        { text: "HE DOES HIS HOMEWORK",correct: true  },
-        { text: "HE DO HIS HOMEWORK",  correct: false },
-        { text: "SHE GOES TO SCHOOL",  correct: true  },
-        { text: "SHE GO TO SCHOOL",    correct: false },
-        { text: "HE WALKS TO SCHOOL",  correct: true  },
-        { text: "HE WALK TO SCHOOL",   correct: false },
-        { text: "SHE GETS UP EARLY",   correct: true  },
-        { text: "SHE GET UP EARLY",    correct: false },
-        { text: "HE TAKES A SHOWER",   correct: true  },
-        { text: "HE TAKE A SHOWER",    correct: false },
-        { text: "SHE READS A BOOK",    correct: true  },
-        { text: "SHE READ A BOOK",     correct: false },
-        { text: "HE RIDES HIS BIKE",   correct: true  },
-        { text: "HE RIDE HIS BIKE",    correct: false },
-        { text: "SHE COOKS DINNER",    correct: true  },
-        { text: "SHE COOK DINNER",     correct: false },
-        { text: "IT HAS A TAIL",       correct: true  },
-        { text: "IT HAVE A TAIL",      correct: false },
-        { text: "SHE FLIES A KITE",    correct: true  },
-        { text: "SHE FLY A KITE",      correct: false },
-        { text: "HE RUNS FAST",        correct: true  },
-        { text: "HE RUN FAST",         correct: false },
-        { text: "SHE CLIMBS A TREE",   correct: true  },
-        { text: "SHE CLIMB A TREE",    correct: false },
-        { text: "HE EATS BREAKFAST",   correct: true  },
-        { text: "HE EAT BREAKFAST",    correct: false },
-        { text: "SHE MAKES HER BED",   correct: true  },
-        { text: "SHE MAKE HER BED",    correct: false },
-        { text: "HE THROWS THE BALL",  correct: true  },
-        { text: "HE THROW THE BALL",   correct: false },
-        { text: "SHE WEARS A COAT",    correct: true  },
-        { text: "SHE WEAR A COAT",     correct: false },
-        // I / YOU / WE / THEY
-        { text: "I LIKE PIZZA",        correct: true  },
-        { text: "I LIKES PIZZA",       correct: false },
-        { text: "THEY GO TO BED",      correct: true  },
-        { text: "THEY GOES TO BED",    correct: false },
-        { text: "WE COOK TOGETHER",    correct: true  },
-        { text: "WE COOKS TOGETHER",   correct: false },
-        { text: "YOU EAT AN APPLE",    correct: true  },
-        { text: "YOU EATS AN APPLE",   correct: false },
-        { text: "THEY SWIM EVERY DAY", correct: true  },
-        { text: "THEY SWIMS EVERY DAY",correct: false },
-        { text: "WE PLAY OUTSIDE",     correct: true  },
-        { text: "WE PLAYS OUTSIDE",    correct: false },
-        { text: "I GET UP AT 7",       correct: true  },
-        { text: "I GETS UP AT 7",      correct: false },
-        { text: "THEY READ BOOKS",     correct: true  },
-        { text: "THEY READS BOOKS",    correct: false },
-        { text: "WE RUN IN THE PARK",  correct: true  },
-        { text: "WE RUNS IN THE PARK", correct: false },
-        { text: "YOU MAKE A CAKE",     correct: true  },
-        { text: "YOU MAKES A CAKE",    correct: false },
-        { text: "THEY WALK HOME",      correct: true  },
-        { text: "THEY WALKS HOME",     correct: false },
-        { text: "I HAVE BREAKFAST",    correct: true  },
-        { text: "I HAS BREAKFAST",     correct: false },
-        { text: "WE WEAR UNIFORMS",    correct: true  },
-        { text: "WE WEARS UNIFORMS",   correct: false },
-        { text: "THEY CLIMB MOUNTAINS",correct: true  },
-        { text: "THEY CLIMBS MOUNTAINS",correct:false },
+    // ─── ГЕНЕРАТОР ФРАЗ ───────────────────────────────────────────────────────
+    // [основная форма, форма с -s/-es/-ies, остаток предложения, 'a' = подходит и для IT]
+    const verbs = [
+        ['wake',  'wakes',  'up',            ''],
+        ['listen','listens','to music',      ''],
+        ['play',  'plays',  '',              'a'],
+        ['watch', 'watches','TV',            ''],
+        ['jump',  'jumps',  '',              'a'],
+        ['swim',  'swims',  '',              'a'],
+        ['catch', 'catches','the bus',       ''],
+        ['do',    'does',   'homework',      ''],
+        ['go',    'goes',   'to school',     ''],
+        ['walk',  'walks',  'to school',     ''],
+        ['get',   'gets',   'up early',      ''],
+        ['take',  'takes',  'a shower',      ''],
+        ['read',  'reads',  'a book',        ''],
+        ['ride',  'rides',  'a bike',        ''],
+        ['cook',  'cooks',  'dinner',        ''],
+        ['have',  'has',    'a tail',        'a'],
+        ['fly',   'flies',  'a kite',        ''],
+        ['run',   'runs',   'fast',          'a'],
+        ['climb', 'climbs', 'a tree',        'a'],
+        ['eat',   'eats',   'breakfast',     ''],
+        ['make',  'makes',  'the bed',       ''],
+        ['throw', 'throws', 'the ball',      ''],
+        ['wear',  'wears',  'a coat',        ''],
+        ['like',  'likes',  'pizza',         ''],
+        ['study', 'studies','English',       ''],
+        ['draw',  'draws',  'pictures',      ''],
+        ['sing',  'sings',  'songs',         ''],
+        ['drink', 'drinks', 'milk',          ''],
+        ['write', 'writes', 'letters',       ''],
+        ['sleep', 'sleeps', 'at night',      'a'],
     ];
+    const subjects3 = ['HE', 'SHE', 'IT'];
+    const subjectsPl = ['I', 'YOU', 'WE', 'THEY'];
+
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    const join = (...p) => p.filter(Boolean).join(' ').toUpperCase();
+
+    function makePhrase() {
+        const type = gameMode === 'mix' ? pick(['aff', 'neg', 'q']) : gameMode;
+        const v = pick(verbs);
+        const [base, third, rest, canIt] = v;
+        let subjPool = [...subjectsPl, 'HE', 'SHE'];
+        if (canIt) subjPool.push('IT');
+        const S = pick(subjPool);
+        const s3 = subjects3.includes(S);
+        const correct = Math.random() < 0.5;
+        let text;
+
+        if (type === 'aff') {
+            text = correct ? join(S, s3 ? third : base, rest)
+                           : join(S, s3 ? base : third, rest);
+        } else if (type === 'neg') {
+            if (correct) {
+                text = join(S, s3 ? "doesn't" : "don't", base, rest);
+            } else {
+                text = pick(s3
+                    ? [join(S, "don't", base, rest), join(S, "doesn't", third, rest)]
+                    : [join(S, "doesn't", base, rest), join(S, "don't", third, rest)]);
+            }
+        } else { // вопрос
+            if (correct) {
+                text = join(s3 ? 'does' : 'do', S, base, rest) + '?';
+            } else {
+                text = pick(s3
+                    ? [join('do', S, base, rest), join('does', S, third, rest)]
+                    : [join('does', S, base, rest), join('do', S, third, rest)]) + '?';
+            }
+        }
+        return { text, correct };
+    }
 
     // ─── ПОЗИЦИОНИРОВАНИЕ ─────────────────────────────────────────────────────
     const CHEST_W = () => Math.max(120, Math.min(220, window.innerWidth * 0.18));
@@ -310,7 +322,7 @@
         } while (isOverlapping(x, y) && attempts < 20);
 
         const chest = document.createElement('div');
-        const data  = phrases[Math.floor(Math.random() * phrases.length)];
+        const data  = makePhrase();
 
         chest.className = 'chest';
         chest.style.left = x + 'px';
@@ -331,7 +343,6 @@
             }
         };
 
-        // Поддержка и мыши, и касания
         chest.addEventListener('click',      handleClick);
         chest.addEventListener('touchstart', e => { e.preventDefault(); handleClick(); }, { passive: false });
 
@@ -376,15 +387,12 @@
             document.getElementById('game-ui').style.display = 'none';
             return;
         }
-
-        // Показываем баннер нового уровня
         bannerTitle.textContent = `STAGE ${currentLevel}`;
         bannerSub.textContent   = `Collect ${levelTargets[currentLevel-1]} chests!`;
         banner.classList.add('show');
 
         setTimeout(() => {
             banner.classList.remove('show');
-            // Меняем фон
             stage.style.backgroundImage = `url('img/bg${currentLevel}.jpg')`;
             score = 0;
             scoreEl.innerText = score;
@@ -394,15 +402,22 @@
         }, 1800);
     }
 
-    // ─── СТАРТ ────────────────────────────────────────────────────────────────
-    // Показываем баннер первого уровня при загрузке
-    window.addEventListener('load', () => {
+    // ─── СТАРТ ИГРЫ ПОСЛЕ ВЫБОРА РЕЖИМА ───────────────────────────────────────
+    function startGame(mode) {
+        gameMode = mode;
+        modeLabel.textContent = MODE_NAMES[mode];
+        modeMenu.style.display = 'none';
+        startMusic();
+
         targetEl.innerText = levelTargets[0];
         bannerTitle.textContent = 'STAGE 1';
-        bannerSub.textContent   = `Collect ${levelTargets[0]} chests!`;
+        bannerSub.textContent   = MODE_HINTS[mode];
         banner.classList.add('show');
-        setTimeout(() => banner.classList.remove('show'), 1800);
-    });
+        setTimeout(() => {
+            banner.classList.remove('show');
+            gameActive = true;
+        }, 1800);
+    }
 
     setInterval(createChest, 1800);
 </script>
